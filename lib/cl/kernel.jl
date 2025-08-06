@@ -266,6 +266,50 @@ function _to_tuple_type(t)
     t
 end
 
+"""
+    clcall(kernel, types, args...; global_size, local_size=nothing, queue=queue())
+
+Execute an OpenCL kernel with the given arguments.
+
+This function calls a compiled OpenCL kernel (from OpenCL C source) with the specified
+arguments. For Julia functions compiled to kernels, use [`@opencl`](@ref) instead.
+
+# Arguments
+
+- `kernel`: A compiled OpenCL [`Kernel`](@ref) object
+- `types`: Tuple type specifying the types of kernel arguments
+- `args...`: Kernel arguments
+- `global_size`: Global work size (required)
+- `local_size`: Local work group size (optional)
+- `queue`: OpenCL command queue to use (optional, defaults to current queue)
+
+# Examples
+
+```julia
+# OpenCL C kernel source
+source = \"\"\"
+__kernel void vadd(__global const float *a,
+                   __global const float *b,
+                   __global float *c) {
+    int gid = get_global_id(0);
+    c[gid] = a[gid] + b[gid];
+}\"\"\"
+
+# Compile kernel
+program = cl.Program(; source) |> cl.build!
+kernel = cl.Kernel(program, "vadd")
+
+# Execute kernel
+a = CLArray(rand(Float32, 1000))
+b = CLArray(rand(Float32, 1000))
+c = similar(a)
+
+clcall(kernel, Tuple{CLPtr{Float32}, CLPtr{Float32}, CLPtr{Float32}},
+       a, b, c; global_size=size(a))
+```
+
+See also: [`@opencl`](@ref), [`Kernel`](@ref), [`CLPtr`](@ref)
+"""
 clcall(f::F, types::Tuple, args::Vararg{Any,N}; kwargs...) where {N,F} =
     clcall(f, _to_tuple_type(types), args...; kwargs...)
 

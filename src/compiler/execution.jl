@@ -7,6 +7,45 @@ const MACRO_KWARGS = [:launch]
 const COMPILER_KWARGS = [:kernel, :name, :always_inline]
 const LAUNCH_KWARGS = [:global_size, :local_size, :queue]
 
+"""
+    @opencl [kwargs...] func(args...)
+
+Execute a Julia function as an OpenCL kernel.
+
+This macro compiles the given Julia function to an OpenCL kernel and executes it on the device.
+The function will be compiled using Julia's native code generation and SPIR-V backend.
+
+# Arguments
+
+- `func(args...)`: Function call to execute as kernel
+- `launch::Bool=true`: Whether to launch the kernel immediately (false returns compiled kernel)
+- `global_size`: Global work size for the kernel launch
+- `local_size`: Local work group size (optional)
+- `queue`: OpenCL command queue to use (optional)
+- `kernel`: Custom kernel name (optional)
+- `always_inline::Bool=false`: Whether to always inline kernel functions
+
+# Examples
+
+```julia
+function vadd(a, b, c)
+    i = get_global_id(1)
+    @inbounds c[i] = a[i] + b[i]
+    return
+end
+
+a = CLArray(rand(Float32, 1000))
+b = CLArray(rand(Float32, 1000))
+c = similar(a)
+
+# Launch kernel
+@opencl global_size=size(a) vadd(a, b, c)
+
+# Compile without launching
+kernel = @opencl launch=false vadd(a, b, c)
+kernel(a, b, c; global_size=size(a))  # Launch later
+```
+"""
 macro opencl(ex...)
     call = ex[end]
     kwargs = map(ex[1:end-1]) do kwarg
@@ -174,6 +213,43 @@ end
 
 const clfunction_lock = ReentrantLock()
 
+"""
+    clfunction(f, tt=Tuple{}; kwargs...)
+
+Compile a Julia function to an OpenCL kernel.
+
+This is a lower-level interface compared to [`@opencl`](@ref). It compiles the given function
+and type signature to a callable kernel object, but does not execute it.
+
+# Arguments
+
+- `f`: Function to compile
+- `tt`: Tuple type representing argument types (default: `Tuple{}`)
+- `kwargs...`: Compiler options (same as `@opencl`)
+
+# Returns
+
+A [`HostKernel`](@ref) object that can be called with arguments.
+
+# Examples
+
+```julia
+function vadd(a, b, c)
+    i = get_global_id(1)
+    @inbounds c[i] = a[i] + b[i]
+    return
+end
+
+# Compile kernel
+kernel = clfunction(vadd, Tuple{CLDeviceArray{Float32,1}, CLDeviceArray{Float32,1}, CLDeviceArray{Float32,1}})
+
+# Use kernel
+a = CLArray(rand(Float32, 1000))
+b = CLArray(rand(Float32, 1000))
+c = similar(a)
+kernel(a, b, c; global_size=size(a))
+```
+"""
 function clfunction(f::F, tt::TT=Tuple{}; kwargs...) where {F,TT}
     ctx = cl.context()
     dev = cl.device()

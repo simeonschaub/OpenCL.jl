@@ -35,6 +35,31 @@ function check_eltype(T)
     return !("cl_khr_fp64" in cl.device().extensions) && contains_eltype(T, Float64) && error("Float16 is not supported on this device")
 end
 
+"""
+    CLArray{T,N} <: AbstractGPUArray{T,N}
+
+N-dimensional OpenCL array with elements of type `T`.
+
+`CLArray`s can be constructed from host arrays, or uninitialized. They are stored using OpenCL
+buffer objects, and can be passed to OpenCL kernels by reference (without copying).
+
+# Examples
+
+```julia
+# Create from host array
+host_array = [1.0f0, 2.0f0, 3.0f0]
+device_array = CLArray(host_array)
+
+# Create uninitialized array
+device_array = CLArray{Float32}(undef, 100)
+
+# Create similar array
+another_array = similar(device_array)
+
+# Copy back to host
+result = Array(device_array)
+```
+"""
 mutable struct CLArray{T, N, M} <: AbstractGPUArray{T, N}
     data::DataRef{Managed{M}}
 
@@ -89,8 +114,25 @@ end
 
 ## convenience constructors
 
+"""
+    CLVector{T} = CLArray{T, 1}
+
+One-dimensional [`CLArray`](@ref).
+"""
 const CLVector{T} = CLArray{T, 1}
+
+"""
+    CLMatrix{T} = CLArray{T, 2}
+
+Two-dimensional [`CLArray`](@ref).
+"""
 const CLMatrix{T} = CLArray{T, 2}
+
+"""
+    CLVecOrMat{T} = Union{CLVector{T}, CLMatrix{T}}
+
+Union type for one- or two-dimensional [`CLArray`](@ref)s.
+"""
 const CLVecOrMat{T} = Union{CLVector{T}, CLMatrix{T}}
 
 # default to non-unified memory

@@ -8,6 +8,25 @@ export CLDeviceArray, CLDeviceVector, CLDeviceMatrix, CLLocalArray
 # NOTE: we can't support the typical `tuple or series of integer` style construction,
 #       because we're currently requiring a trailing pointer argument.
 
+"""
+    CLDeviceArray{T,N,A} <: DenseArray{T,N}
+
+An N-dimensional array type for use within OpenCL kernels.
+
+This type represents arrays that are accessible from within kernel functions. It provides a
+view into OpenCL memory with proper bounds checking and indexing operations.
+
+`CLDeviceArray`s are typically created by passing [`CLArray`](@ref) objects as arguments to
+OpenCL kernels, where they are automatically converted.
+
+# Type Parameters
+
+- `T`: Element type
+- `N`: Number of dimensions
+- `A`: Address space (typically `AS.CrossWorkgroup` for global memory)
+
+See also: [`CLArray`](@ref), [`@opencl`](@ref)
+"""
 struct CLDeviceArray{T,N,A} <: DenseArray{T,N}
     ptr::LLVMPtr{T,A}
     maxsize::Int

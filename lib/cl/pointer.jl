@@ -10,9 +10,23 @@ export CLPtr, CL_NULL, PtrOrCLPtr, CLRef, RefOrCLRef
 """
     CLPtr{T}
 
-A memory address that refers to data of type `T` that is accessible from q device. A `CLPtr`
-is ABI compatible with regular `Ptr` objects, e.g. it can be used to `ccall` a function that
-expects a `Ptr` to device memory, but it prevents erroneous conversions between the two.
+A memory address that refers to data of type `T` that is accessible from a device.
+
+A `CLPtr` is ABI compatible with regular `Ptr` objects, e.g. it can be used to `ccall` a
+function that expects a `Ptr` to device memory, but it prevents erroneous conversions
+between host and device pointers.
+
+`CLPtr` is typically used in OpenCL C kernel function signatures to represent global memory
+pointers.
+
+# Examples
+
+```julia
+# Used in kernel signatures for clcall
+clcall(kernel, Tuple{CLPtr{Float32}, CLPtr{Float32}}, a, b; global_size=(1000,))
+```
+
+See also: [`CLArray`](@ref), [`clcall`](@ref)
 """
 CLPtr
 
