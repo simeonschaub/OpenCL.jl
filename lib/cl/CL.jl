@@ -25,5 +25,6 @@ include("program.jl")
 include("kernel.jl")
 
 include("state.jl")
+include("profiling.jl")
 
 end
